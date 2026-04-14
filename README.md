@@ -75,27 +75,34 @@ internal/
   "documents": [
     {
       "numero_pagina": 1,
-      "emitente":    { "nif": "500906840" },
-      "adquirente":  { "nif": "225630745", "pais": "PT" },
+      "conteudo_bruto": "A:508136695*B:999999990*C:PT*D:FT*E:N*F:20250917*G:FT 2025A/341*H:KXTP8ZQ2-341*I1:PT*I7:142.68*I8:32.82*N:32.82*O:175.50*Q:pNaK*R:1287",
+      "emitente": { "nif": "508136695" },
+      "adquirente": { "nif": "999999990", "pais": "PT" },
       "documento": {
-        "tipo_codigo": "FT", "tipo": "Fatura",
-        "estado_codigo": "N", "estado": "Normal",
-        "data": "2026-03-11",
-        "identificador": "FT 20260/00659283",
-        "atcud": "J66S9FDD-659283"
+        "tipo_codigo": "FT",
+        "tipo": "Fatura",
+        "estado_codigo": "N",
+        "estado": "Normal",
+        "data": "2025-09-17",
+        "identificador": "FT 2025A/341",
+        "atcud": "KXTP8ZQ2-341"
       },
       "impostos": {
         "linhas": [
-          { "regiao": "Portugal Continental", "taxa": "Isento",       "base_tributavel": 7.35, "valor_iva": 0.00 },
-          { "regiao": "Portugal Continental", "taxa": "Taxa Reduzida", "base_tributavel": 8.39, "valor_iva": 0.50 }
+          {
+            "regiao": "Portugal Continental",
+            "taxa": "Taxa Normal",
+            "base_tributavel": 142.68,
+            "valor_iva": 32.82
+          }
         ],
-        "total_imposto": 0.50,
+        "total_imposto": 32.82,
         "retencao_fonte": 0
       },
-      "totais": { "total_documento": 16.24 },
-      "caracteres_assinatura": "VMRI",
-      "numero_certificado": "622",
-      "informacoes_adicionais": "MB;20811;;16.24"
+      "totais": { "total_documento": 175.50 },
+      "caracteres_assinatura": "pNaK",
+      "numero_certificado": "1287",
+      "informacoes_adicionais": ""
     }
   ]
 }
