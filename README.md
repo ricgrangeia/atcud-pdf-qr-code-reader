@@ -189,7 +189,7 @@ O `docker-compose.yml` usa variáveis de ambiente explícitas, compatíveis com 
 
 | Componente | Tecnologia |
 |-----------|-----------|
-| Linguagem | [Go 1.25](https://go.dev/) |
+| Linguagem | [Go 1.25.9](https://go.dev/) |
 | Framework HTTP | [Gin](https://gin-gonic.com/) |
 | OpenAPI / Swagger | [Huma v2](https://huma.rocks/) — OAS 3.1 automático |
 | Detecção de QR codes | [gozxing](https://github.com/makiuchi-d/gozxing) |

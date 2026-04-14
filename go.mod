@@ -1,6 +1,6 @@
 module cmd/go-api
 
-go 1.25.0
+go 1.25.9
 
 require (
 	github.com/danielgtaylor/huma/v2 v2.37.3

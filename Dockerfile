@@ -1,6 +1,6 @@
 ### STAGE 1 — Build ###
 
-FROM golang:1.25-alpine AS build
+FROM golang:1.25.9-alpine AS build
 
 # CGO is disabled for a fully static binary.
 ENV GOOS=linux GOARCH=amd64 CGO_ENABLED=0
