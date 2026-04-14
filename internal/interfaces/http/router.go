@@ -16,10 +16,9 @@ import (
 // versionBody é o shape da resposta de GET /api/v1/version.
 // Definido fora do handler para evitar conflito de tipos anónimos.
 type versionBody struct {
-	Version     string `json:"version"      doc:"Versão semântica da aplicação"`
-	LastUpdated string `json:"last_updated" doc:"Data da última actualização (AAAA-MM-DD)"`
-	Author      string `json:"author"       doc:"Nome do autor"`
-	AuthorURL   string `json:"author_url"   doc:"Website do autor"`
+	Version   string `json:"version"    doc:"Versão semântica da aplicação"`
+	Author    string `json:"author"     doc:"Nome do autor"`
+	AuthorURL string `json:"author_url" doc:"Website do autor"`
 }
 
 // NewRouter creates the Gin engine, wraps it with Huma, and registers all routes.
@@ -72,10 +71,9 @@ func NewRouter() *gin.Engine {
 		Tags:        []string{"info"},
 	}, func(ctx context.Context, _ *struct{}) (*struct{ Body versionBody }, error) {
 		return &struct{ Body versionBody }{Body: versionBody{
-			Version:     appConfig.AppVersion,
-			LastUpdated: appConfig.LastUpdated,
-			Author:      appConfig.Author,
-			AuthorURL:   appConfig.AuthorURL,
+			Version:   appConfig.AppVersion,
+			Author:    appConfig.Author,
+			AuthorURL: appConfig.AuthorURL,
 		}}, nil
 	})
 
