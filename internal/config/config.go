@@ -6,7 +6,7 @@ import "os"
 // AppVersion, LastUpdated e Author são definidos aqui e expostos
 // pelo endpoint GET /api/v1/version.
 const (
-	AppVersion  = "1.0.0"
+	AppVersion  = "1.1.0"
 	Author      = "Ricardo Grangeia"
 	AuthorURL   = "https://ricardo.grangeia.pt"
 )

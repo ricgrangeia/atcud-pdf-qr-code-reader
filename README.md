@@ -1,6 +1,6 @@
 # Leitor de QR Code Fiscal ATCUD
 
-**Versão:** 1.0.0 · **Licença:** MIT · **Autor:** [Ricardo Grangeia](https://ricardo.grangeia.pt)
+**Versão:** 1.1.0 · **Licença:** MIT · **Autor:** [Ricardo Grangeia](https://ricardo.grangeia.pt)
 
 Serviço HTTP escrito em Go para leitura e descodificação de **QR codes ATCUD** em documentos fiscais portugueses. Extrai o NIF do emitente, NIF do adquirente, tipo de documento, linhas de IVA por taxa e região fiscal, totais e muito mais — tudo em JSON estruturado.
 
