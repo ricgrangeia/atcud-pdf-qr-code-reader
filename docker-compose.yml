@@ -9,7 +9,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: go-api-app
+    container_name: go-atcud-pdf-qr-code-reader-app
     environment:
       - PORT=${PORT:-8080}
       - VLLM_BASE_URL=${VLLM_BASE_URL}
@@ -28,19 +28,19 @@ services:
       # Activar Traefik para este contentor
       - "traefik.enable=true"
       # Router HTTPS — serve domain com TLS
-      - "traefik.http.routers.go-api-app.rule=Host(`${URL_HOST_DOMAIN}`)"
-      - "traefik.http.routers.go-api-app.entrypoints=websecure"
-      - "traefik.http.routers.go-api-app.tls=true"
-      - "traefik.http.routers.go-api-app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.go-atcud-pdf-qr-code-reader-app.rule=Host(`${URL_HOST_DOMAIN}`)"
+      - "traefik.http.routers.go-atcud-pdf-qr-code-reader-app.entrypoints=websecure"
+      - "traefik.http.routers.go-atcud-pdf-qr-code-reader-app.tls=true"
+      - "traefik.http.routers.go-atcud-pdf-qr-code-reader-app.tls.certresolver=letsencrypt"
       # Router HTTP — redireciona automaticamente para HTTPS
-      - "traefik.http.routers.go-api-app-http.rule=Host(`${URL_HOST_DOMAIN}`)"
-      - "traefik.http.routers.go-api-app-http.entrypoints=web"
-      - "traefik.http.routers.go-api-app-http.middlewares=redirect-https"
+      - "traefik.http.routers.go-atcud-pdf-qr-code-reader-app-http.rule=Host(`${URL_HOST_DOMAIN}`)"
+      - "traefik.http.routers.go-atcud-pdf-qr-code-reader-app-http.entrypoints=web"
+      - "traefik.http.routers.go-atcud-pdf-qr-code-reader-app-http.middlewares=redirect-https"
       # Middleware de redireccionamento HTTP → HTTPS
       - "traefik.http.middlewares.redirect-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.redirect-https.redirectscheme.permanent=true"
       # Porta interna do contentor (deve coincidir com PORT)
-      - "traefik.http.services.go-api-app.loadbalancer.server.port=8080"
+      - "traefik.http.services.go-atcud-pdf-qr-code-reader-app.loadbalancer.server.port=8080"
     logging:
       driver: "json-file"
       options:
