@@ -132,7 +132,7 @@
       <!-- Selector de modo -->
       <div>
         <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">O que pretende fazer?</p>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
 
           <button data-modo="parse" onclick="seleccionarModo('parse')"
                   class="botao-modo border-2 rounded-lg p-4 text-left transition-all
@@ -141,6 +141,16 @@
             <p class="text-xs text-gray-500 mt-1">
               NIF do emitente, NIF do adquirente, tipo de documento,
               linhas de imposto, totais — JSON estruturado
+            </p>
+          </button>
+
+          <button data-modo="parse-enriched" onclick="seleccionarModo('parse-enriched')"
+                  class="botao-modo border-2 rounded-lg p-4 text-left transition-all
+                         border-gray-200 hover:border-gray-300">
+            <p class="font-semibold text-sm text-gray-700">Descodificar com entidades</p>
+            <p class="text-xs text-gray-500 mt-1">
+              Igual ao anterior mas identifica automaticamente o nome do emitente
+              e do adquirente via serviço de NIF por IA
             </p>
           </button>
 
@@ -354,7 +364,10 @@
       if (!ficheiroSeleccionado) return
 
       const prefixo = isPDF(ficheiroSeleccionado) ? '/api/v1/document' : '/api/v1/image'
-      const endpoint = prefixo + (modoSeleccionado === 'parse' ? '/parse' : '/scan')
+      const sufixo  = modoSeleccionado === 'parse'          ? '/parse'
+                    : modoSeleccionado === 'parse-enriched' ? '/parse/enriched'
+                    : '/scan'
+      const endpoint = prefixo + sufixo
 
       definirCarregamento(true)
       ocultarResultado()
@@ -403,7 +416,7 @@
       painel.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
       // Mostrar botão de identificar entidades só após parse com sucesso e com documentos
-      const temDocumentos = ok && modoSeleccionado === 'parse' &&
+      const temDocumentos = ok && (modoSeleccionado === 'parse' || modoSeleccionado === 'parse-enriched') &&
         Array.isArray(dados.documents) && dados.documents.length > 0
       document.getElementById('painelIdentificar').classList.toggle('hidden', !temDocumentos)
       document.getElementById('painelEntidades').classList.add('hidden')

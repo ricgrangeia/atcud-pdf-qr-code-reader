@@ -34,12 +34,16 @@ type ParsedQRCode struct {
 
 // EmitenteInfo identifica o vendedor.
 type EmitenteInfo struct {
+	// Descricao é o nome da entidade resolvido pelo serviço de NIF (opcional).
+	Descricao string `json:"descricao,omitempty"`
 	// A — NIF do emitente
 	NIF string `json:"nif"`
 }
 
 // AdquirenteInfo identifica o comprador.
 type AdquirenteInfo struct {
+	// Descricao é o nome da entidade resolvido pelo serviço de NIF (opcional).
+	Descricao string `json:"descricao,omitempty"`
 	// B — NIF do adquirente (ou "0" se consumidor final)
 	NIF string `json:"nif"`
 	// C — País do adquirente (código ISO 3166-1 alpha-2)

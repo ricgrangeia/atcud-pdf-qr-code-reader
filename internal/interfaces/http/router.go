@@ -126,6 +126,28 @@ func NewRouter(cfg *appConfig.Config) *gin.Engine {
 		Tags: []string{"imagem"},
 	}, ParseImageHandler(docService))
 
+	// POST /api/v1/document/parse/enriched
+	huma.Register(api, huma.Operation{
+		OperationID: "parse-pdf-enriched",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/document/parse/enriched",
+		Summary:     "Descodificar PDF com identificação de entidades por IA",
+		Description: "Igual a /document/parse mas inclui o nome da entidade (emitente e adquirente) " +
+			"resolvido pelo serviço de NIF nos campos `descricao`.",
+		Tags: []string{"documento"},
+	}, ParsePDFEnrichedHandler(docService, cfg))
+
+	// POST /api/v1/image/parse/enriched
+	huma.Register(api, huma.Operation{
+		OperationID: "parse-image-enriched",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/image/parse/enriched",
+		Summary:     "Descodificar imagem com identificação de entidades por IA",
+		Description: "Igual a /image/parse mas inclui o nome da entidade (emitente e adquirente) " +
+			"resolvido pelo serviço de NIF nos campos `descricao`.",
+		Tags: []string{"imagem"},
+	}, ParseImageEnrichedHandler(docService, cfg))
+
 	// POST /api/v1/nif/lookup/bulk
 	huma.Register(api, huma.Operation{
 		OperationID: "nif-lookup-bulk",

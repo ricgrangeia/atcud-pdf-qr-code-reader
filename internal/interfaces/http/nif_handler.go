@@ -82,6 +82,32 @@ func NifBulkHandler(cfg *appConfig.Config) func(context.Context, *NifBulkInput) 
 	}
 }
 
+// resolveNIFsMap resolves a slice of NIFs (special + external) and returns a map nif→NifResult.
+// Never returns an error — failures for individual NIFs are stored inside the result.
+func resolveNIFsMap(ctx context.Context, cfg *appConfig.Config, nifs []string) map[string]NifResult {
+	out := make(map[string]NifResult, len(nifs))
+	var toLookup []string
+
+	for _, nif := range nifs {
+		if name, ok := specialNIFs[nif]; ok {
+			n := name
+			out[nif] = NifResult{NIF: nif, Found: true, Name: &n}
+		} else {
+			toLookup = append(toLookup, nif)
+		}
+	}
+
+	if len(toLookup) > 0 && cfg.ToolServerURL != "" {
+		if results, err := proxyNIFBulk(ctx, cfg, toLookup); err == nil {
+			for _, r := range results {
+				out[r.NIF] = r
+			}
+		}
+	}
+
+	return out
+}
+
 func proxyNIFBulk(ctx context.Context, cfg *appConfig.Config, nifs []string) ([]NifResult, error) {
 	body, err := json.Marshal(map[string][]string{"nifs": nifs})
 	if err != nil {
