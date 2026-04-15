@@ -27,7 +27,7 @@ type versionBody struct {
 //   - serves the OpenAPI 3.1 spec at  GET /openapi.json  and  /openapi.yaml
 //   - serves the Swagger UI           at  GET /docs
 //   - validates every request against the schema derived from the input structs
-func NewRouter() *gin.Engine {
+func NewRouter(cfg *appConfig.Config) *gin.Engine {
 	router := gin.Default()
 	router.SetTrustedProxies([]string{"172.16.0.0/12"}) // Docker bridge range — covers the Traefik proxy network
 	router.MaxMultipartMemory = 32 << 20                 // 32 MB max upload size
@@ -102,6 +102,41 @@ func NewRouter() *gin.Engine {
 			"linhas de IVA por taxa e região fiscal, total do documento e mais.",
 		Tags: []string{"documento"},
 	}, ParsePDFHandler(docService))
+
+	// POST /api/v1/image/scan
+	huma.Register(api, huma.Operation{
+		OperationID: "scan-image",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/image/scan",
+		Summary:     "Detectar QR codes ATCUD numa imagem",
+		Description: "Recebe uma imagem (JPEG, PNG, GIF, WEBP, TIFF) — página completa ou recorte — " +
+			"e devolve o conteúdo bruto dos QR codes que contêm um código ATCUD fiscal português válido.",
+		Tags: []string{"imagem"},
+	}, ScanImageHandler(docService))
+
+	// POST /api/v1/image/parse
+	huma.Register(api, huma.Operation{
+		OperationID: "parse-image",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/image/parse",
+		Summary:     "Descodificar imagem fiscal — dados estruturados",
+		Description: "Recebe uma imagem (JPEG, PNG, GIF, WEBP, TIFF) — página completa ou recorte — " +
+			"e descodifica cada QR code ATCUD em campos identificados: NIF do emitente, NIF do adquirente, " +
+			"tipo de documento, data, linhas de IVA por taxa e região fiscal, total do documento e mais.",
+		Tags: []string{"imagem"},
+	}, ParseImageHandler(docService))
+
+	// POST /api/v1/nif/lookup/bulk
+	huma.Register(api, huma.Operation{
+		OperationID: "nif-lookup-bulk",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/nif/lookup/bulk",
+		Summary:     "Resolver NIFs portugueses para nomes",
+		Description: "Recebe uma lista de NIFs e devolve o nome da entidade, actividade e morada " +
+			"para cada um. NIFs especiais (999999990, 999999999) são resolvidos localmente. " +
+			"Os restantes são consultados no serviço externo configurado em TOOL_SERVER_URL.",
+		Tags: []string{"nif"},
+	}, NifBulkHandler(cfg))
 
 	return router
 }

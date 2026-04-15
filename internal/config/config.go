@@ -29,6 +29,13 @@ type Config struct {
 
 	// VLLMModel is the model identifier to use when calling vLLM.
 	VLLMModel string
+
+	// ToolServerURL is the base URL of the AI tool server that resolves NIFs to names.
+	// Example: http://192.168.1.94:8000
+	ToolServerURL string
+
+	// ToolServerAPIKey is the x-api-key used to authenticate with the AI tool server.
+	ToolServerAPIKey string
 }
 
 // Load reads the configuration from environment variables.
@@ -50,5 +57,7 @@ func Load() *Config {
 		VLLMBaseURL:   os.Getenv("VLLM_BASE_URL"),
 		VLLMAPIKey:    os.Getenv("VLLM_API_KEY"),
 		VLLMModel:     os.Getenv("VLLM_MODEL"),
+		ToolServerURL:  os.Getenv("TOOL_SERVER_URL"),
+		ToolServerAPIKey:     os.Getenv("TOOL_SERVER_API_KEY"),
 	}
 }

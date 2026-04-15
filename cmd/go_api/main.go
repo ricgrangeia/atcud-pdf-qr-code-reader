@@ -22,7 +22,7 @@ func main() {
 	log.Printf("Swagger UI → https://%s/docs", cfg.URLHostDomain)
 	log.Printf("OpenAPI spec → https://%s/openapi.json", cfg.URLHostDomain)
 
-	router := appHTTP.NewRouter()
+	router := appHTTP.NewRouter(cfg)
 
 	if err := router.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("Server stopped with error: %v", err)

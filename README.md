@@ -70,9 +70,11 @@ internal/
 
 | Método | Caminho | Descrição |
 |--------|---------|-----------|
-| `POST` | `/api/v1/document/scan` | Devolve o conteúdo bruto dos QR codes com ATCUD |
-| `POST` | `/api/v1/document/parse` | Devolve os dados fiscais completamente estruturados |
-| `GET`  | `/api/v1/version` | Versão, data de actualização e autor |
+| `POST` | `/api/v1/document/scan` | PDF — conteúdo bruto dos QR codes com ATCUD |
+| `POST` | `/api/v1/document/parse` | PDF — dados fiscais completamente estruturados |
+| `POST` | `/api/v1/image/scan` | Imagem — conteúdo bruto dos QR codes com ATCUD |
+| `POST` | `/api/v1/image/parse` | Imagem — dados fiscais completamente estruturados |
+| `GET`  | `/api/v1/version` | Versão e autor |
 | `GET`  | `/health` | Estado do serviço |
 | `GET`  | `/docs` | Swagger UI (OpenAPI 3.1) |
 | `GET`  | `/` | Interface web |

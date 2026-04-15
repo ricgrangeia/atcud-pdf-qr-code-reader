@@ -113,7 +113,7 @@
            class="border-2 border-dashed border-gray-300 rounded-lg p-10 text-center
                   cursor-pointer transition-colors hover:border-blue-400 hover:bg-blue-50"
            onclick="document.getElementById('inputFicheiro').click()">
-        <input id="inputFicheiro" type="file" accept=".pdf" class="hidden" />
+        <input id="inputFicheiro" type="file" accept=".pdf,image/jpeg,image/png,image/gif,image/webp,image/tiff" class="hidden" />
 
         <svg id="iconoCarregar" class="w-10 h-10 mx-auto text-gray-300 mb-3"
              fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"
@@ -124,7 +124,7 @@
         </svg>
 
         <p id="labelArrastar" class="text-sm text-gray-400">
-          Arraste um PDF para aqui, ou <span class="text-blue-500 font-medium">clique para seleccionar</span>
+          Arraste um <span class="font-medium text-gray-500">PDF</span> ou <span class="font-medium text-gray-500">imagem</span> para aqui, ou <span class="text-blue-500 font-medium">clique para seleccionar</span>
         </p>
         <p id="nomeFicheiro" class="hidden mt-2 text-sm font-medium text-blue-600"></p>
       </div>
@@ -210,6 +210,27 @@
       </ul>
     </section>
 
+    <!-- Botão identificar entidades (visível só após parse com sucesso) -->
+    <div id="painelIdentificar" class="hidden">
+      <button id="botaoIdentificar" onclick="identificarEntidades()"
+              class="w-full py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold
+                     hover:bg-emerald-700 active:scale-95 transition-all
+                     disabled:opacity-40 disabled:cursor-not-allowed
+                     flex items-center justify-center gap-2">
+        <svg id="spinnerIdentificar" class="spinner w-4 h-4 hidden" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+        </svg>
+        <span id="labelIdentificar">🔍 Identificar Entidades (NIF)</span>
+      </button>
+    </div>
+
+    <!-- Painel de entidades identificadas -->
+    <div id="painelEntidades" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
+      <h3 class="text-sm font-semibold text-gray-700">Entidades identificadas</h3>
+      <div id="listaEntidades" class="space-y-3"></div>
+    </div>
+
     <!-- Painel de resultado (oculto até haver resposta) -->
     <div id="painelResultado" class="hidden bg-white rounded-xl shadow-sm border border-gray-200">
 
@@ -270,13 +291,15 @@
     let ficheiroSeleccionado = null
     let modoSeleccionado     = 'parse'
     let ultimoJSON           = ''
+    let ultimaRespostaObj    = null
 
     // ── Selecção de ficheiro ───────────────────────────────────
     const zonaArrastar = document.getElementById('zonaArrastar')
     const inputFicheiro = document.getElementById('inputFicheiro')
 
     inputFicheiro.addEventListener('change', () => {
-      if (inputFicheiro.files[0]) definirFicheiro(inputFicheiro.files[0])
+      const f = inputFicheiro.files[0]
+      if (f && tipoAceite(f)) definirFicheiro(f)
     })
 
     zonaArrastar.addEventListener('dragover', e => {
@@ -292,9 +315,17 @@
       e.preventDefault()
       zonaArrastar.classList.remove('drop-activo')
       const f = e.dataTransfer.files[0]
-      if (f && f.type === 'application/pdf') definirFicheiro(f)
-      else mostrarErro('Apenas são aceites ficheiros PDF.')
+      if (f && tipoAceite(f)) definirFicheiro(f)
+      else mostrarErro('Apenas são aceites ficheiros PDF ou imagens (JPEG, PNG, GIF, WEBP, TIFF).')
     })
+
+    function tipoAceite(f) {
+      return f.type === 'application/pdf' || f.type.startsWith('image/')
+    }
+
+    function isPDF(f) {
+      return f.type === 'application/pdf'
+    }
 
     function definirFicheiro(f) {
       ficheiroSeleccionado = f
@@ -322,12 +353,13 @@
     async function analisar() {
       if (!ficheiroSeleccionado) return
 
-      const endpoint = modoSeleccionado === 'parse'
-        ? '/api/v1/document/parse'
-        : '/api/v1/document/scan'
+      const prefixo = isPDF(ficheiroSeleccionado) ? '/api/v1/document' : '/api/v1/image'
+      const endpoint = prefixo + (modoSeleccionado === 'parse' ? '/parse' : '/scan')
 
       definirCarregamento(true)
       ocultarResultado()
+      document.getElementById('painelIdentificar').classList.add('hidden')
+      document.getElementById('painelEntidades').classList.add('hidden')
 
       const corpo = new FormData()
       corpo.append('file', ficheiroSeleccionado)
@@ -364,10 +396,17 @@
       titulo.textContent  = ok ? 'Resposta com sucesso' : 'Erro na resposta'
       httpLbl.textContent = estado ? `HTTP ${estado}` : 'Erro de rede'
 
-      ultimoJSON   = JSON.stringify(dados, null, 2)
+      ultimoJSON      = JSON.stringify(dados, null, 2)
+      ultimaRespostaObj = dados
       saida.innerHTML = realcarJSON(ultimoJSON)
       painel.classList.remove('hidden')
       painel.scrollIntoView({ behavior: 'smooth', block: 'start' })
+
+      // Mostrar botão de identificar entidades só após parse com sucesso e com documentos
+      const temDocumentos = ok && modoSeleccionado === 'parse' &&
+        Array.isArray(dados.documents) && dados.documents.length > 0
+      document.getElementById('painelIdentificar').classList.toggle('hidden', !temDocumentos)
+      document.getElementById('painelEntidades').classList.add('hidden')
     }
 
     function ocultarResultado() {
@@ -384,6 +423,98 @@
         btn.textContent = 'Copiado!'
         setTimeout(() => { btn.textContent = 'Copiar JSON' }, 1500)
       })
+    }
+
+    // ── Identificar entidades (NIF) ───────────────────────────
+    async function identificarEntidades() {
+      if (!ultimaRespostaObj || !Array.isArray(ultimaRespostaObj.documents)) return
+
+      // Collect unique NIFs from all documents
+      const nifSet = new Set()
+      ultimaRespostaObj.documents.forEach(doc => {
+        if (doc.emitente?.nif) nifSet.add(doc.emitente.nif)
+        if (doc.adquirente?.nif) nifSet.add(doc.adquirente.nif)
+      })
+
+      const nifs = [...nifSet]
+      if (nifs.length === 0) return
+
+      const btn = document.getElementById('botaoIdentificar')
+      const spinner = document.getElementById('spinnerIdentificar')
+      const label = document.getElementById('labelIdentificar')
+      btn.disabled = true
+      spinner.classList.remove('hidden')
+      label.textContent = 'A consultar…'
+
+      try {
+        const res = await fetch('/api/v1/nif/lookup/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nifs })
+        })
+        const data = await res.json()
+
+        // Index results by NIF
+        const porNif = {}
+        if (Array.isArray(data)) {
+          data.forEach(r => { porNif[r.nif] = r })
+        }
+
+        // Render result panel
+        const lista = document.getElementById('listaEntidades')
+        lista.innerHTML = ''
+
+        ultimaRespostaObj.documents.forEach((doc, idx) => {
+          const emitenteNif  = doc.emitente?.nif  || null
+          const adquirenteNif = doc.adquirente?.nif || null
+
+          const html = `
+            <div class="border border-gray-100 rounded-lg p-3 space-y-2 text-sm">
+              <p class="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                Documento ${idx + 1}
+                ${doc.documento?.identificador ? `— ${doc.documento.identificador}` : ''}
+              </p>
+              ${emitenteNif   ? entidadeHTML('Emitente',   emitenteNif,   porNif[emitenteNif])   : ''}
+              ${adquirenteNif ? entidadeHTML('Adquirente', adquirenteNif, porNif[adquirenteNif]) : ''}
+            </div>`
+          lista.insertAdjacentHTML('beforeend', html)
+        })
+
+        document.getElementById('painelEntidades').classList.remove('hidden')
+      } catch (e) {
+        const lista = document.getElementById('listaEntidades')
+        lista.innerHTML = `<p class="text-sm text-red-500">Erro ao consultar NIFs: ${e.message}</p>`
+        document.getElementById('painelEntidades').classList.remove('hidden')
+      } finally {
+        btn.disabled = false
+        spinner.classList.add('hidden')
+        label.textContent = '🔍 Identificar Entidades (NIF)'
+      }
+    }
+
+    function entidadeHTML(papel, nif, resultado) {
+      let nome, cor
+      if (!resultado) {
+        nome = 'não encontrado'
+        cor  = 'text-gray-400'
+      } else if (!resultado.found) {
+        nome = 'não encontrado'
+        cor  = 'text-gray-400'
+      } else {
+        nome = resultado.name || 'não encontrado'
+        cor  = 'text-gray-800 font-medium'
+      }
+
+      const extra = resultado?.found && resultado?.activity
+        ? `<span class="text-xs text-gray-400 ml-1">— ${resultado.activity}</span>`
+        : ''
+
+      return `
+        <div class="flex items-baseline gap-2">
+          <span class="text-xs text-gray-400 w-20 shrink-0">${papel}</span>
+          <span class="font-mono text-xs text-gray-500">${nif}</span>
+          <span class="${cor}">${nome}</span>${extra}
+        </div>`
     }
 
     // ── Realce de sintaxe JSON ─────────────────────────────────

@@ -1,8 +1,10 @@
 package pdf
 
 import (
+	"bytes"
 	"fmt"
 	"image"
+	_ "image/gif"  // register GIF decoder
 	_ "image/jpeg" // register JPEG decoder
 	_ "image/png"  // register PNG decoder
 	"os"
@@ -69,6 +71,25 @@ func ExtractQRCodes(pdfBytes []byte) ([]RawQRCode, error) {
 	return results, nil
 }
 
+// ExtractQRCodesFromImage scans a single image (JPEG, PNG, GIF, …) for QR codes
+// and returns all decoded results. PageNumber is always 1.
+func ExtractQRCodesFromImage(imageBytes []byte) ([]RawQRCode, error) {
+	if len(imageBytes) == 0 {
+		return nil, fmt.Errorf("image is empty")
+	}
+
+	texts, err := decodeQRCodesFromBytes(imageBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]RawQRCode, 0, len(texts))
+	for _, t := range texts {
+		results = append(results, RawQRCode{Content: t, PageNumber: 1})
+	}
+	return results, nil
+}
+
 // scanImageForQRCodes finds every QR code in one image file and returns their decoded text.
 func scanImageForQRCodes(imagePath string) ([]string, error) {
 	f, err := os.Open(imagePath)
@@ -82,6 +103,20 @@ func scanImageForQRCodes(imagePath string) ([]string, error) {
 		return nil, fmt.Errorf("decoding image %s: %w", imagePath, err)
 	}
 
+	return scanBitmap(img)
+}
+
+// decodeQRCodesFromBytes decodes QR codes directly from raw image bytes without a temp file.
+func decodeQRCodesFromBytes(data []byte) ([]string, error) {
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("decoding image: %w", err)
+	}
+	return scanBitmap(img)
+}
+
+// scanBitmap converts an image to a ZXing bitmap and extracts all QR codes from it.
+func scanBitmap(img image.Image) ([]string, error) {
 	// Convert the image to the binary bitmap format that ZXing expects.
 	bitmap, err := gozxing.NewBinaryBitmapFromImage(img)
 	if err != nil {
@@ -106,6 +141,5 @@ func scanImageForQRCodes(imagePath string) ([]string, error) {
 	for _, result := range decoded {
 		texts = append(texts, result.GetText())
 	}
-
 	return texts, nil
 }

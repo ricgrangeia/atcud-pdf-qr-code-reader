@@ -2,6 +2,9 @@ networks:
   proxy-network:
     name: ${PROXY_NETWORK_NAME}
     external: true
+  ai:
+    name: ${AI_NETWORK_NAME}
+    external: true
 
 services:
   app:
@@ -17,10 +20,12 @@ services:
       - VLLM_MODEL=${VLLM_MODEL}
       - URL_HOST_DOMAIN=${URL_HOST_DOMAIN}
       - GIN_MODE=${GIN_MODE}
+      - TOOL_SERVER_URL=${TOOL_SERVER_URL}
+      - TOOL_SERVER_API_KEY=${TOOL_SERVER_API_KEY}
     # Sem ports: — o Traefik trata do roteamento externo.
     # Descomentar apenas para testes locais sem Traefik:
-    # ports:
-    #   - "8080:8080"
+    #ports:
+    #  - "8081:8080"
     init: true
     restart: unless-stopped
     user: "10001:10001"

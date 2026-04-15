@@ -77,6 +77,69 @@ func ParsePDFHandler(service *appDocument.ScanService) func(context.Context, *Pa
 	}
 }
 
+// -- Image handlers ---------------------------------------------------------
+
+// imageFormData describes the multipart/form-data fields for image uploads.
+type imageFormData struct {
+	File huma.FormFile `form:"file" contentType:"image/jpeg,image/png,image/gif,image/webp,image/tiff,application/octet-stream" doc:"Image containing QR code(s) — full page or cropped" required:"true"`
+}
+
+// ScanImageInput is the request shape for POST /image/scan.
+type ScanImageInput struct {
+	RawBody huma.MultipartFormFiles[imageFormData]
+}
+
+// ParseImageInput is the request shape for POST /image/parse.
+type ParseImageInput struct {
+	RawBody huma.MultipartFormFiles[imageFormData]
+}
+
+// ScanImageHandler returns the handler for POST /api/v1/image/scan.
+func ScanImageHandler(service *appDocument.ScanService) func(context.Context, *ScanImageInput) (*ScanOutput, error) {
+	return func(ctx context.Context, input *ScanImageInput) (*ScanOutput, error) {
+		formData := input.RawBody.Data()
+
+		imageBytes, err := io.ReadAll(formData.File)
+		if err != nil {
+			return nil, huma.Error422UnprocessableEntity(
+				"could not read the uploaded file", fmt.Errorf("io.ReadAll: %w", err),
+			)
+		}
+
+		result, err := service.ScanImage(imageBytes)
+		if err != nil {
+			return nil, huma.Error422UnprocessableEntity(
+				"failed to process the image", err,
+			)
+		}
+
+		return &ScanOutput{Body: result}, nil
+	}
+}
+
+// ParseImageHandler returns the handler for POST /api/v1/image/parse.
+func ParseImageHandler(service *appDocument.ScanService) func(context.Context, *ParseImageInput) (*ParseOutput, error) {
+	return func(ctx context.Context, input *ParseImageInput) (*ParseOutput, error) {
+		formData := input.RawBody.Data()
+
+		imageBytes, err := io.ReadAll(formData.File)
+		if err != nil {
+			return nil, huma.Error422UnprocessableEntity(
+				"could not read the uploaded file", fmt.Errorf("io.ReadAll: %w", err),
+			)
+		}
+
+		result, err := service.ParseImage(imageBytes)
+		if err != nil {
+			return nil, huma.Error422UnprocessableEntity(
+				"failed to process the image", err,
+			)
+		}
+
+		return &ParseOutput{Body: result}, nil
+	}
+}
+
 // -- Scan handler -----------------------------------------------------------
 
 // ScanPDFHandler returns the handler function for POST /document/scan.

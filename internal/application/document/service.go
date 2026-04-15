@@ -80,6 +80,77 @@ func (s *ScanService) ScanPDF(pdfBytes []byte) (*ScanResult, error) {
 	return result, nil
 }
 
+// ScanImage reads an image, extracts every QR code, and returns those that carry an ATCUD.
+func (s *ScanService) ScanImage(imageBytes []byte) (*ScanResult, error) {
+	if len(imageBytes) == 0 {
+		return nil, fmt.Errorf("the image file is empty")
+	}
+
+	raw, err := pdf.ExtractQRCodesFromImage(imageBytes)
+	if err != nil {
+		return nil, fmt.Errorf("extracting QR codes from image: %w", err)
+	}
+
+	result := &ScanResult{
+		TotalQRCodes: len(raw),
+		QRCodes:      make([]domain.QRCode, 0),
+	}
+
+	for _, r := range raw {
+		atcud, hasATCUD := domain.DetectATCUD(r.Content)
+		if hasATCUD {
+			result.QRCodes = append(result.QRCodes, domain.QRCode{
+				Content:    r.Content,
+				PageNumber: r.PageNumber,
+				HasATCUD:   true,
+				ATCUD:      atcud,
+			})
+		}
+	}
+
+	result.ATCUDCount = len(result.QRCodes)
+	return result, nil
+}
+
+// ParseImage extracts every ATCUD QR code from the image and returns each one
+// fully decoded into structured, human-readable fields.
+func (s *ScanService) ParseImage(imageBytes []byte) (*ParseResult, error) {
+	if len(imageBytes) == 0 {
+		return nil, fmt.Errorf("the image file is empty")
+	}
+
+	raw, err := pdf.ExtractQRCodesFromImage(imageBytes)
+	if err != nil {
+		return nil, fmt.Errorf("extracting QR codes from image: %w", err)
+	}
+
+	result := &ParseResult{
+		TotalQRCodes: len(raw),
+		Documents:    make([]domain.ParsedQRCode, 0),
+	}
+
+	for _, r := range raw {
+		if _, hasATCUD := domain.DetectATCUD(r.Content); !hasATCUD {
+			continue
+		}
+
+		parsed, err := domain.ParseQRCode(r.Content)
+		if err != nil {
+			result.Documents = append(result.Documents, domain.ParsedQRCode{
+				NumeroPagina:  r.PageNumber,
+				ConteudoBruto: r.Content,
+			})
+			continue
+		}
+
+		parsed.NumeroPagina = r.PageNumber
+		result.Documents = append(result.Documents, *parsed)
+	}
+
+	result.ParsedCount = len(result.Documents)
+	return result, nil
+}
+
 // ParsePDF extracts every ATCUD QR code from the PDF and returns each one
 // fully decoded into structured, human-readable fields (seller NIF, buyer NIF,
 // document type, tax breakdown, totals, etc.).
