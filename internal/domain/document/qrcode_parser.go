@@ -39,7 +39,7 @@ import (
 //	R  — Número do certificado do software
 //	S  — Informações adicionais (ex: meio de pagamento)
 func ParseQRCode(content string) (*ParsedQRCode, error) {
-	campos := extrairCampos(content)
+	campos := extractFields(content)
 
 	p := &ParsedQRCode{ConteudoBruto: content}
 
@@ -50,10 +50,10 @@ func ParseQRCode(content string) (*ParsedQRCode, error) {
 
 	// ── Documento ─────────────────────────────────────────────
 	p.Documento.TipoCodigo = campos["D"]
-	p.Documento.Tipo = nomeTipoDocumento(campos["D"])
+	p.Documento.Tipo = nameTypeDocument(campos["D"])
 	p.Documento.EstadoCodigo = campos["E"]
-	p.Documento.Estado = nomeEstadoDocumento(campos["E"])
-	p.Documento.Data = formatarData(campos["F"])
+	p.Documento.Estado = nameStateDocument(campos["E"])
+	p.Documento.Data = FormatDate(campos["F"])
 	p.Documento.Identificador = campos["G"]
 	p.Documento.ATCUD = campos["H"]
 
@@ -65,7 +65,7 @@ func ParseQRCode(content string) (*ParsedQRCode, error) {
 	//   x3 = base taxa reduzida  /  x4 = IVA taxa reduzida
 	//   x5 = base taxa intermédia / x6 = IVA taxa intermédia
 	//   x7 = base taxa normal     / x8 = IVA taxa normal
-	p.Impostos.Linhas = extrairLinhasImposto(campos)
+	p.Impostos.Linhas = extractTaxesLines(campos)
 	p.Impostos.TotalImposto = parseMontante(campos["N"])
 	p.Impostos.RetencaoFonte = parseMontante(campos["P"])
 
@@ -84,8 +84,8 @@ func ParseQRCode(content string) (*ParsedQRCode, error) {
 	return p, nil
 }
 
-// extrairCampos divide "A:val*B:val*..." num map[chave]valor.
-func extrairCampos(conteudo string) map[string]string {
+// extractFields divide "A:val*B:val*..." num map[chave]valor.
+func extractFields(conteudo string) map[string]string {
 	out := make(map[string]string)
 	for _, par := range strings.Split(conteudo, "*") {
 		idx := strings.Index(par, ":")
@@ -97,8 +97,8 @@ func extrairCampos(conteudo string) map[string]string {
 	return out
 }
 
-// extrairLinhasImposto lê os campos de imposto para as três regiões fiscais.
-func extrairLinhasImposto(campos map[string]string) []LinhaImposto {
+// extractTaxesLines lê os campos de imposto para as três regiões fiscais.
+func extractTaxesLines(campos map[string]string) []LinhaImposto {
 	regioes := []struct {
 		prefixo string
 		nome    string
@@ -160,8 +160,8 @@ func extrairLinhasImposto(campos map[string]string) []LinhaImposto {
 	return linhas
 }
 
-// formatarData converte AAAAMMDD em AAAA-MM-DD.
-func formatarData(bruto string) string {
+// FormatDate converte AAAAMMDD em AAAA-MM-DD.
+func FormatDate(bruto string) string {
 	if len(bruto) != 8 {
 		return bruto
 	}
@@ -177,8 +177,8 @@ func parseMontante(bruto string) float64 {
 	return v
 }
 
-// nomeTipoDocumento devolve a designação oficial portuguesa para o código AT.
-func nomeTipoDocumento(codigo string) string {
+// nameTypeDocument devolve a designação oficial portuguesa para o código AT.
+func nameTypeDocument(code string) string {
 	nomes := map[string]string{
 		"FT": "Fatura",
 		"FR": "Fatura-Recibo",
@@ -195,14 +195,14 @@ func nomeTipoDocumento(codigo string) string {
 		"OR": "Orçamento",
 		"NE": "Nota de Encomenda",
 	}
-	if nome, ok := nomes[codigo]; ok {
+	if nome, ok := nomes[code]; ok {
 		return nome
 	}
-	return codigo
+	return code
 }
 
-// nomeEstadoDocumento devolve a designação oficial portuguesa para o código AT.
-func nomeEstadoDocumento(codigo string) string {
+// nameStateDocument devolve a designação oficial portuguesa para o código AT.
+func nameStateDocument(code string) string {
 	nomes := map[string]string{
 		"N": "Normal",
 		"S": "Autofaturação",
@@ -211,8 +211,8 @@ func nomeEstadoDocumento(codigo string) string {
 		"R": "Documento Sumário",
 		"F": "Faturado",
 	}
-	if nome, ok := nomes[codigo]; ok {
+	if nome, ok := nomes[code]; ok {
 		return nome
 	}
-	return codigo
+	return code
 }

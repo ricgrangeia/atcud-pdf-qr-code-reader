@@ -95,10 +95,22 @@
         <h1 class="text-lg font-semibold leading-none">Leitor de Documentos Fiscais</h1>
         <p class="text-xs text-gray-400 mt-0.5">Descodificação de QR codes ATCUD — Portugal</p>
       </div>
-      <a href="/docs" target="_blank" rel="noopener noreferrer"
-         class="ml-auto text-xs text-blue-500 hover:text-blue-700 hover:underline shrink-0">
-        Documentação API ↗
-      </a>
+      <div class="ml-auto flex items-center gap-4 shrink-0">
+        <div class="hidden sm:flex flex-col items-end text-xs text-gray-400 leading-tight">
+          <span>
+            <span id="stats-mes" class="font-semibold text-gray-600">—</span>
+            doc. este mês
+          </span>
+          <span>
+            <span id="stats-total" class="font-semibold text-gray-600">—</span>
+            no total
+          </span>
+        </div>
+        <a href="/docs" target="_blank" rel="noopener noreferrer"
+           class="text-xs text-blue-500 hover:text-blue-700 hover:underline">
+          Documentação API ↗
+        </a>
+      </div>
     </div>
   </header>
 
@@ -298,6 +310,18 @@
       })
       .catch(() => {})
 
+    // ── Estatísticas ──────────────────────────────────────────
+    function carregarStats() {
+      fetch('/api/v1/stats')
+        .then(r => r.json())
+        .then(s => {
+          document.getElementById('stats-mes').textContent   = s.this_month.toLocaleString('pt-PT')
+          document.getElementById('stats-total').textContent = s.total.toLocaleString('pt-PT')
+        })
+        .catch(() => {})
+    }
+    carregarStats()
+
     let ficheiroSeleccionado = null
     let modoSeleccionado     = 'parse'
     let ultimoJSON           = ''
@@ -385,6 +409,7 @@
         mostrarResultado({ erro: erro.message }, 0)
       } finally {
         definirCarregamento(false)
+        carregarStats()
       }
     }
 

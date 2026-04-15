@@ -36,6 +36,16 @@ type Config struct {
 
 	// ToolServerAPIKey is the x-api-key used to authenticate with the AI tool server.
 	ToolServerAPIKey string
+
+	// DataDir is the directory where persistent data (e.g. stats) is stored.
+	DataDir string
+}
+
+func dataDir() string {
+	if d := os.Getenv("DATA_DIR"); d != "" {
+		return d
+	}
+	return "/app/data"
 }
 
 // Load reads the configuration from environment variables.
@@ -57,7 +67,8 @@ func Load() *Config {
 		VLLMBaseURL:   os.Getenv("VLLM_BASE_URL"),
 		VLLMAPIKey:    os.Getenv("VLLM_API_KEY"),
 		VLLMModel:     os.Getenv("VLLM_MODEL"),
-		ToolServerURL:  os.Getenv("TOOL_SERVER_URL"),
-		ToolServerAPIKey:     os.Getenv("TOOL_SERVER_API_KEY"),
+		ToolServerURL:    os.Getenv("TOOL_SERVER_URL"),
+		ToolServerAPIKey: os.Getenv("TOOL_SERVER_API_KEY"),
+		DataDir:          dataDir(),
 	}
 }

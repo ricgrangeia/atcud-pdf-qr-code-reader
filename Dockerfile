@@ -42,6 +42,9 @@ RUN adduser \
     --uid "${UID}" \
     "${USER}"
 
+# Create the data directory for persistent stats and set ownership before switching user.
+RUN mkdir -p /app/data && chown ${UID}:${UID} /app/data
+
 # Copy the compiled binary from the build stage.
 COPY --from=build --chown=${USER}:${USER} /app/server ./bin/server
 

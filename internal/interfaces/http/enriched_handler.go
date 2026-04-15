@@ -9,48 +9,39 @@ import (
 
 	appDocument "cmd/go-api/internal/application/document"
 	appConfig "cmd/go-api/internal/config"
+	"cmd/go-api/internal/infrastructure/stats"
 )
 
 // ParsePDFEnrichedHandler parses a PDF and enriches emitente/adquirente with names from the NIF service.
-func ParsePDFEnrichedHandler(service *appDocument.ScanService, cfg *appConfig.Config) func(context.Context, *ParseInput) (*ParseOutput, error) {
+func ParsePDFEnrichedHandler(service *appDocument.ScanService, cfg *appConfig.Config, counter *stats.Counter) func(context.Context, *ParseInput) (*ParseOutput, error) {
 	return func(ctx context.Context, input *ParseInput) (*ParseOutput, error) {
-		formData := input.RawBody.Data()
-
-		pdfBytes, err := io.ReadAll(formData.File)
+		pdfBytes, err := io.ReadAll(input.RawBody.Data().File)
 		if err != nil {
-			return nil, huma.Error422UnprocessableEntity(
-				"could not read the uploaded file", fmt.Errorf("io.ReadAll: %w", err),
-			)
+			return nil, huma.Error422UnprocessableEntity("could not read the uploaded file", fmt.Errorf("io.ReadAll: %w", err))
 		}
-
 		result, err := service.ParsePDF(pdfBytes)
 		if err != nil {
 			return nil, huma.Error422UnprocessableEntity("failed to process the PDF", err)
 		}
-
 		enrichParseResult(ctx, cfg, result)
+		counter.Increment()
 		return &ParseOutput{Body: result}, nil
 	}
 }
 
 // ParseImageEnrichedHandler parses an image and enriches emitente/adquirente with names from the NIF service.
-func ParseImageEnrichedHandler(service *appDocument.ScanService, cfg *appConfig.Config) func(context.Context, *ParseImageInput) (*ParseOutput, error) {
+func ParseImageEnrichedHandler(service *appDocument.ScanService, cfg *appConfig.Config, counter *stats.Counter) func(context.Context, *ParseImageInput) (*ParseOutput, error) {
 	return func(ctx context.Context, input *ParseImageInput) (*ParseOutput, error) {
-		formData := input.RawBody.Data()
-
-		imageBytes, err := io.ReadAll(formData.File)
+		imageBytes, err := io.ReadAll(input.RawBody.Data().File)
 		if err != nil {
-			return nil, huma.Error422UnprocessableEntity(
-				"could not read the uploaded file", fmt.Errorf("io.ReadAll: %w", err),
-			)
+			return nil, huma.Error422UnprocessableEntity("could not read the uploaded file", fmt.Errorf("io.ReadAll: %w", err))
 		}
-
 		result, err := service.ParseImage(imageBytes)
 		if err != nil {
 			return nil, huma.Error422UnprocessableEntity("failed to process the image", err)
 		}
-
 		enrichParseResult(ctx, cfg, result)
+		counter.Increment()
 		return &ParseOutput{Body: result}, nil
 	}
 }

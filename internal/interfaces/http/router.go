@@ -10,35 +10,36 @@ import (
 
 	appDocument "cmd/go-api/internal/application/document"
 	appConfig   "cmd/go-api/internal/config"
+	"cmd/go-api/internal/infrastructure/stats"
 	"cmd/go-api/internal/ui"
 )
 
 // versionBody é o shape da resposta de GET /api/v1/version.
-// Definido fora do handler para evitar conflito de tipos anónimos.
 type versionBody struct {
 	Version   string `json:"version"    doc:"Versão semântica da aplicação"`
 	Author    string `json:"author"     doc:"Nome do autor"`
 	AuthorURL string `json:"author_url" doc:"Website do autor"`
 }
 
+// statsBody é o shape da resposta de GET /api/v1/stats.
+type statsBody struct {
+	Total     int64  `json:"total"      doc:"Total de documentos analisados desde sempre"`
+	ThisMonth int64  `json:"this_month" doc:"Documentos analisados no mês corrente"`
+	Month     string `json:"month"      doc:"Mês corrente no formato AAAA-MM"`
+}
+
 // NewRouter creates the Gin engine, wraps it with Huma, and registers all routes.
-//
-// Huma automatically:
-//   - serves the OpenAPI 3.1 spec at  GET /openapi.json  and  /openapi.yaml
-//   - serves the Swagger UI           at  GET /docs
-//   - validates every request against the schema derived from the input structs
-func NewRouter(cfg *appConfig.Config) *gin.Engine {
+func NewRouter(cfg *appConfig.Config, counter *stats.Counter) *gin.Engine {
 	router := gin.Default()
 	router.SetTrustedProxies([]string{"172.16.0.0/12"}) // Docker bridge range — covers the Traefik proxy network
 	router.MaxMultipartMemory = 32 << 20                 // 32 MB max upload size
 
-	// Huma config — this is all the "swagger" setup you need.
 	humaConfig := huma.DefaultConfig("GoApi — Leitor de QR Code Fiscal ATCUD", appConfig.AppVersion)
-	humaConfig.Info.Description = "Recebe um PDF, extrai todos os QR codes e devolve os que contêm um código ATCUD fiscal português."
+	humaConfig.Info.Description = "Recebe um PDF ou imagem, extrai todos os QR codes e devolve os que contêm um código ATCUD fiscal português."
 
 	api := humagin.New(router, humaConfig)
 
-	// GET / — interface web (HTML embutido no binário via go:embed).
+	// GET / — interface web embutida no binário via go:embed.
 	router.GET("/", func(c *gin.Context) {
 		c.Data(http.StatusOK, "text/html; charset=utf-8", ui.IndexHTML)
 	})
@@ -78,6 +79,22 @@ func NewRouter(cfg *appConfig.Config) *gin.Engine {
 		}}, nil
 	})
 
+	// GET /api/v1/stats
+	huma.Register(api, huma.Operation{
+		OperationID: "stats",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/stats",
+		Summary:     "Estatísticas de utilização",
+		Tags:        []string{"info"},
+	}, func(ctx context.Context, _ *struct{}) (*struct{ Body statsBody }, error) {
+		total, thisMonth, month := counter.Stats()
+		return &struct{ Body statsBody }{Body: statsBody{
+			Total:     total,
+			ThisMonth: thisMonth,
+			Month:     month,
+		}}, nil
+	})
+
 	docService := appDocument.NewScanService()
 
 	// POST /api/v1/document/scan
@@ -89,7 +106,7 @@ func NewRouter(cfg *appConfig.Config) *gin.Engine {
 		Description: "Descodifica todos os QR codes em todas as páginas do PDF e devolve " +
 			"apenas os que contêm um código ATCUD fiscal português válido.",
 		Tags: []string{"documento"},
-	}, ScanPDFHandler(docService))
+	}, ScanPDFHandler(docService, counter))
 
 	// POST /api/v1/document/parse
 	huma.Register(api, huma.Operation{
@@ -101,7 +118,7 @@ func NewRouter(cfg *appConfig.Config) *gin.Engine {
 			"identificados: NIF do emitente, NIF do adquirente, tipo de documento, data, " +
 			"linhas de IVA por taxa e região fiscal, total do documento e mais.",
 		Tags: []string{"documento"},
-	}, ParsePDFHandler(docService))
+	}, ParsePDFHandler(docService, counter))
 
 	// POST /api/v1/image/scan
 	huma.Register(api, huma.Operation{
@@ -112,7 +129,7 @@ func NewRouter(cfg *appConfig.Config) *gin.Engine {
 		Description: "Recebe uma imagem (JPEG, PNG, GIF, WEBP, TIFF) — página completa ou recorte — " +
 			"e devolve o conteúdo bruto dos QR codes que contêm um código ATCUD fiscal português válido.",
 		Tags: []string{"imagem"},
-	}, ScanImageHandler(docService))
+	}, ScanImageHandler(docService, counter))
 
 	// POST /api/v1/image/parse
 	huma.Register(api, huma.Operation{
@@ -124,7 +141,7 @@ func NewRouter(cfg *appConfig.Config) *gin.Engine {
 			"e descodifica cada QR code ATCUD em campos identificados: NIF do emitente, NIF do adquirente, " +
 			"tipo de documento, data, linhas de IVA por taxa e região fiscal, total do documento e mais.",
 		Tags: []string{"imagem"},
-	}, ParseImageHandler(docService))
+	}, ParseImageHandler(docService, counter))
 
 	// POST /api/v1/document/parse/enriched
 	huma.Register(api, huma.Operation{
@@ -135,7 +152,7 @@ func NewRouter(cfg *appConfig.Config) *gin.Engine {
 		Description: "Igual a /document/parse mas inclui o nome da entidade (emitente e adquirente) " +
 			"resolvido pelo serviço de NIF nos campos `descricao`.",
 		Tags: []string{"documento"},
-	}, ParsePDFEnrichedHandler(docService, cfg))
+	}, ParsePDFEnrichedHandler(docService, cfg, counter))
 
 	// POST /api/v1/image/parse/enriched
 	huma.Register(api, huma.Operation{
@@ -146,7 +163,7 @@ func NewRouter(cfg *appConfig.Config) *gin.Engine {
 		Description: "Igual a /image/parse mas inclui o nome da entidade (emitente e adquirente) " +
 			"resolvido pelo serviço de NIF nos campos `descricao`.",
 		Tags: []string{"imagem"},
-	}, ParseImageEnrichedHandler(docService, cfg))
+	}, ParseImageEnrichedHandler(docService, cfg, counter))
 
 	// POST /api/v1/nif/lookup/bulk
 	huma.Register(api, huma.Operation{
