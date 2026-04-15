@@ -60,8 +60,6 @@ func New(filePath string) (*Counter, error) {
 // source should be one of "web", "android", or "api".
 func (c *Counter) Increment(source string) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	c.data.Total++
 	key := time.Now().Format("2006-01")
 
@@ -73,9 +71,12 @@ func (c *Counter) Increment(source string) {
 	m.Sources[source]++
 	c.data.Monthly[key] = m
 
-	// Best-effort write — never block the request on I/O failure.
+	// Snapshot for the async write — taken while still holding the lock.
 	raw, _ := json.Marshal(c.data)
-	_ = os.WriteFile(c.filePath, raw, 0644)
+	c.mu.Unlock()
+
+	// Write to disk asynchronously so the request is never blocked by I/O.
+	go func() { _ = os.WriteFile(c.filePath, raw, 0644) }()
 }
 
 // StatsResult carries the full breakdown returned by Stats.
