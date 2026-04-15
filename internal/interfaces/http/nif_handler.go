@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -127,7 +128,8 @@ func proxyNIFBulk(ctx context.Context, cfg *appConfig.Config, nifs []string) ([]
 		req.Header.Set("x-api-key", cfg.ToolServerAPIKey)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	nifClient := &http.Client{Timeout: 30 * time.Second}
+	resp, err := nifClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("calling NIF lookup service: %w", err)
 	}
