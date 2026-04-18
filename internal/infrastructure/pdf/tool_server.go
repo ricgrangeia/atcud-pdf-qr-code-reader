@@ -71,10 +71,10 @@ func parseToolServerResponse(data []byte) ([]RawQRCode, error) {
 		return objectsToRawQRCodes(objSlice), nil
 	}
 
-	// Shape 3: wrapped object — {"results": [...], ...}
+	// Shape 3: wrapped object — {"qrcodes": [...], ...}
 	var wrapper map[string]interface{}
 	if err := json.Unmarshal(data, &wrapper); err == nil {
-		for _, key := range []string{"results", "qr_codes", "codes", "data"} {
+		for _, key := range []string{"qrcodes", "qr_codes", "results", "codes", "data"} {
 			if raw, ok := wrapper[key]; ok {
 				if inner, err := json.Marshal(raw); err == nil {
 					if results, err := parseToolServerResponse(inner); err == nil {
@@ -102,7 +102,7 @@ func objectsToRawQRCodes(objs []map[string]interface{}) []RawQRCode {
 	out := make([]RawQRCode, 0, len(objs))
 	for _, obj := range objs {
 		content := ""
-		for _, key := range []string{"content", "text", "data", "qr_content"} {
+		for _, key := range []string{"data", "content", "text", "qr_content"} {
 			if v, ok := obj[key]; ok {
 				if s, ok := v.(string); ok && s != "" {
 					content = s
