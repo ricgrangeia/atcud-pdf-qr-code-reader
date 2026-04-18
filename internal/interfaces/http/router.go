@@ -104,7 +104,7 @@ func NewRouter(cfg *appConfig.Config, counter *stats.Counter) *gin.Engine {
 		}}, nil
 	})
 
-	docService := appDocument.NewScanService()
+	docService := appDocument.NewScanService(cfg)
 
 	// POST /api/v1/document/scan
 	huma.Register(api, huma.Operation{

@@ -4,6 +4,7 @@ package document
 import (
 	"fmt"
 
+	appConfig "cmd/go-api/internal/config"
 	domain "cmd/go-api/internal/domain/document"
 	"cmd/go-api/internal/infrastructure/pdf"
 )
@@ -34,11 +35,26 @@ type ParseResult struct {
 }
 
 // ScanService is the use-case handler for scanning a PDF for ATCUD QR codes.
-type ScanService struct{}
+type ScanService struct {
+	cfg *appConfig.Config
+}
 
 // NewScanService creates a ScanService.
-func NewScanService() *ScanService {
-	return &ScanService{}
+func NewScanService(cfg *appConfig.Config) *ScanService {
+	return &ScanService{cfg: cfg}
+}
+
+// extractFromPDF returns raw QR codes from a PDF.
+// It uses the tool server when configured, falling back to local scanning.
+func (s *ScanService) extractFromPDF(pdfBytes []byte) ([]pdf.RawQRCode, error) {
+	if s.cfg != nil && s.cfg.ToolServerURL != "" {
+		raw, err := pdf.ScanPDFViaToolServer(pdfBytes, s.cfg.ToolServerURL, s.cfg.ToolServerAPIKey)
+		if err == nil {
+			return raw, nil
+		}
+		// Tool server failed — fall through to local scanning.
+	}
+	return pdf.ExtractQRCodes(pdfBytes)
 }
 
 // ScanPDF reads a PDF, extracts every QR code, and returns those that carry an ATCUD.
@@ -52,8 +68,7 @@ func (s *ScanService) ScanPDF(pdfBytes []byte) (*ScanResult, error) {
 		return nil, fmt.Errorf("the PDF file is empty")
 	}
 
-	// Extract all QR codes from every page of the PDF.
-	raw, err := pdf.ExtractQRCodes(pdfBytes)
+	raw, err := s.extractFromPDF(pdfBytes)
 	if err != nil {
 		return nil, fmt.Errorf("extracting QR codes from PDF: %w", err)
 	}
@@ -164,7 +179,7 @@ func (s *ScanService) ParsePDF(pdfBytes []byte) (*ParseResult, error) {
 		return nil, fmt.Errorf("the PDF file is empty")
 	}
 
-	raw, err := pdf.ExtractQRCodes(pdfBytes)
+	raw, err := s.extractFromPDF(pdfBytes)
 	if err != nil {
 		return nil, fmt.Errorf("extracting QR codes from PDF: %w", err)
 	}
