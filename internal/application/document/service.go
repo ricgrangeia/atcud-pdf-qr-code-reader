@@ -45,14 +45,10 @@ func NewScanService(cfg *appConfig.Config) *ScanService {
 }
 
 // extractFromPDF returns raw QR codes from a PDF.
-// It uses the tool server when configured, falling back to local scanning.
+// Uses the tool server when configured, otherwise falls back to local scanning.
 func (s *ScanService) extractFromPDF(pdfBytes []byte) ([]pdf.RawQRCode, error) {
 	if s.cfg != nil && s.cfg.ToolServerURL != "" {
-		raw, err := pdf.ScanPDFViaToolServer(pdfBytes, s.cfg.ToolServerURL, s.cfg.ToolServerAPIKey)
-		if err == nil {
-			return raw, nil
-		}
-		// Tool server failed — fall through to local scanning.
+		return pdf.ScanPDFViaToolServer(pdfBytes, s.cfg.ToolServerURL, s.cfg.ToolServerAPIKey)
 	}
 	return pdf.ExtractQRCodes(pdfBytes)
 }
