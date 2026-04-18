@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var toolServerClient = &http.Client{Timeout: 60 * time.Second}
+var toolServerClient = &http.Client{Timeout: 300 * time.Second}
 
 // ScanPDFViaToolServer forwards a PDF to the tool server's /tools/pdf/qr/decode endpoint
 // and returns the decoded QR code strings. The response schema is unspecified ({}) so
