@@ -71,7 +71,7 @@ func FullInvoiceHandler(service *appDocument.ScanService, cfg *appConfig.Config,
 			return nil, huma.Error422UnprocessableEntity("failed to process the PDF", pr.err)
 		}
 		if ir.err != nil {
-			return nil, huma.Error502BadGateway("calling tool server items endpoint", ir.err)
+			return nil, upstreamError("full.items", ir.err)
 		}
 
 		// items: only keep columns + rows.
@@ -82,7 +82,7 @@ func FullInvoiceHandler(service *appDocument.ScanService, cfg *appConfig.Config,
 			} `json:"items"`
 		}
 		if err := json.Unmarshal(ir.data, &itemsWrapper); err != nil {
-			return nil, huma.Error502BadGateway("parsing items response", err)
+			return nil, upstreamError("full.items.parse", err)
 		}
 
 		counter.Increment(sourceFromContext(ctx))

@@ -50,7 +50,11 @@ func ScanPDFViaToolServer(pdfBytes []byte, toolServerURL, apiKey string) ([]RawQ
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("tool server returned HTTP %d: %s", resp.StatusCode, string(data))
+		// Body is intentionally not included in the returned error so that upstream
+		// detail (URLs, internal stack traces) does not leak to the API caller.
+		// The handler logs the full error server-side via upstreamError.
+		_ = data
+		return nil, fmt.Errorf("tool server returned HTTP %d", resp.StatusCode)
 	}
 
 	return parseToolServerResponse(data)

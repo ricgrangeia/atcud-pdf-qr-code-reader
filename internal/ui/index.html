@@ -410,6 +410,7 @@
       ficheiroSeleccionado = f
       document.getElementById('labelArrastar').classList.add('hidden')
       const label = document.getElementById('nomeFicheiro')
+      // textContent is already safe — no HTML interpolation here.
       label.textContent = `📄 ${f.name}  (${(f.size / 1024).toFixed(1)} KB)`
       label.classList.remove('hidden')
       document.getElementById('botaoEnviar').disabled = false
@@ -566,7 +567,7 @@
             <div class="border border-gray-100 rounded-lg p-3 space-y-2 text-sm">
               <p class="text-xs font-medium text-gray-400 uppercase tracking-wide">
                 Documento ${idx + 1}
-                ${doc.documento?.identificador ? `— ${doc.documento.identificador}` : ''}
+                ${doc.documento?.identificador ? `— ${escapeHTML(doc.documento.identificador)}` : ''}
               </p>
               ${emitenteNif   ? entidadeHTML('Emitente',   emitenteNif,   porNif[emitenteNif])   : ''}
               ${adquirenteNif ? entidadeHTML('Adquirente', adquirenteNif, porNif[adquirenteNif]) : ''}
@@ -577,13 +578,24 @@
         document.getElementById('painelEntidades').classList.remove('hidden')
       } catch (e) {
         const lista = document.getElementById('listaEntidades')
-        lista.innerHTML = `<p class="text-sm text-red-500">Erro ao consultar NIFs: ${e.message}</p>`
+        lista.innerHTML = `<p class="text-sm text-red-500">Erro ao consultar NIFs: ${escapeHTML(e.message)}</p>`
         document.getElementById('painelEntidades').classList.remove('hidden')
       } finally {
         btn.disabled = false
         spinner.classList.add('hidden')
         label.textContent = '🔍 Identificar Entidades (NIF)'
       }
+    }
+
+    // ── Escape HTML to prevent XSS from external NIF service responses ─────
+    function escapeHTML(s) {
+      if (s === null || s === undefined) return ''
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
     }
 
     function entidadeHTML(papel, nif, resultado) {
@@ -600,14 +612,14 @@
       }
 
       const extra = resultado?.found && resultado?.activity
-        ? `<span class="text-xs text-gray-400 ml-1">— ${resultado.activity}</span>`
+        ? `<span class="text-xs text-gray-400 ml-1">— ${escapeHTML(resultado.activity)}</span>`
         : ''
 
       return `
         <div class="flex items-baseline gap-2">
-          <span class="text-xs text-gray-400 w-20 shrink-0">${papel}</span>
-          <span class="font-mono text-xs text-gray-500">${nif}</span>
-          <span class="${cor}">${nome}</span>${extra}
+          <span class="text-xs text-gray-400 w-20 shrink-0">${escapeHTML(papel)}</span>
+          <span class="font-mono text-xs text-gray-500">${escapeHTML(nif)}</span>
+          <span class="${cor}">${escapeHTML(nome)}</span>${extra}
         </div>`
     }
 

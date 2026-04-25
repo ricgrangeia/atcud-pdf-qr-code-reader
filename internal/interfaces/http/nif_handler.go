@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/danielgtaylor/huma/v2"
-
 	appConfig "cmd/go-api/internal/config"
 )
 
@@ -75,7 +73,7 @@ func NifBulkHandler(cfg *appConfig.Config) func(context.Context, *NifBulkInput) 
 
 		external, err := proxyNIFBulk(ctx, cfg, toLookup)
 		if err != nil {
-			return nil, huma.Error502BadGateway("falha ao consultar serviço de NIF", err)
+			return nil, upstreamError("nif.bulk", err)
 		}
 
 		results = append(results, external...)

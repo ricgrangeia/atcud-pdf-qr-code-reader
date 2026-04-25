@@ -2,12 +2,40 @@
 package pdf
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
+	"strings"
 )
+
+// MaxPDFPages is the cap on pages we will render. PDFs above this are rejected.
+// Protects against decompression-bomb PDFs that are tiny on disk but expand to
+// thousands of high-DPI page images during rendering.
+const MaxPDFPages = 50
+
+// pageCount asks pdfinfo for the page count without rendering anything.
+// Returns 0 when pdfinfo cannot determine the page count.
+func pageCount(pdfPath string) int {
+	out, err := exec.Command("pdfinfo", pdfPath).Output()
+	if err != nil {
+		return 0
+	}
+	scanner := bufio.NewScanner(strings.NewReader(string(out)))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "Pages:") {
+			n, err := strconv.Atoi(strings.TrimSpace(strings.TrimPrefix(line, "Pages:")))
+			if err == nil {
+				return n
+			}
+		}
+	}
+	return 0
+}
 
 // renderPagesToImages converts every page of a PDF into a PNG file.
 //

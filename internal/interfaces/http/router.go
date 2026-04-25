@@ -39,6 +39,14 @@ func NewRouter(cfg *appConfig.Config, counter *stats.Counter) *gin.Engine {
 	router.MaxMultipartMemory = 32 << 20                 // 32 MB max upload size
 	router.Use(clientSourceMiddleware())
 
+	// Per-IP rate limiters.
+	// Every request is charged against the global bucket; AI/LLM endpoints
+	// are also charged against a stricter bucket so a single IP cannot
+	// exhaust upstream model resources.
+	globalLimiter := newIPLimiter(120, 30) // 120 req/min, burst 30
+	llmLimiter := newIPLimiter(15, 5)      // 15 req/min, burst 5
+	router.Use(rateLimitMiddleware(globalLimiter, llmLimiter))
+
 	humaConfig := huma.DefaultConfig("GoApi — Leitor de QR Code Fiscal ATCUD", appConfig.AppVersion)
 	humaConfig.Info.Description = "Recebe um PDF ou imagem, extrai todos os QR codes e devolve os que contêm um código ATCUD fiscal português."
 

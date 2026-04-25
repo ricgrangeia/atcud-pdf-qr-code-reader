@@ -48,17 +48,17 @@ func ItemsHandler(cfg *appConfig.Config, counter *stats.Counter) func(context.Co
 		w := multipart.NewWriter(&body)
 		part, err := w.CreateFormFile("file", "document.pdf")
 		if err != nil {
-			return nil, huma.Error500InternalServerError("creating multipart form", err)
+			return nil, internalError("items.multipart", err)
 		}
 		if _, err = part.Write(pdfBytes); err != nil {
-			return nil, huma.Error500InternalServerError("writing PDF to form", err)
+			return nil, internalError("items.multipart", err)
 		}
 		w.Close()
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost,
 			cfg.ToolServerURL+"/tools/pdf/items/decode-upload", &body)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("creating request", err)
+			return nil, internalError("items.request", err)
 		}
 		req.Header.Set("Content-Type", w.FormDataContentType())
 		if cfg.ToolServerAPIKey != "" {
@@ -67,19 +67,17 @@ func ItemsHandler(cfg *appConfig.Config, counter *stats.Counter) func(context.Co
 
 		resp, err := itemsClient.Do(req)
 		if err != nil {
-			return nil, huma.Error502BadGateway("calling items extractor", err)
+			return nil, upstreamError("items.call", err)
 		}
 		defer resp.Body.Close()
 
 		raw, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return nil, huma.Error502BadGateway("reading items extractor response", err)
+			return nil, upstreamError("items.read", err)
 		}
 		if resp.StatusCode != http.StatusOK {
-			return nil, huma.Error502BadGateway(
-				fmt.Sprintf("items extractor returned HTTP %d", resp.StatusCode),
-				fmt.Errorf("%s", string(raw)),
-			)
+			return nil, upstreamError("items.status",
+				fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(raw)))
 		}
 
 		// Tool server response shape:
@@ -91,7 +89,7 @@ func ItemsHandler(cfg *appConfig.Config, counter *stats.Counter) func(context.Co
 			} `json:"items"`
 		}
 		if err := json.Unmarshal(raw, &wrapper); err != nil {
-			return nil, huma.Error502BadGateway("parsing items extractor response", err)
+			return nil, upstreamError("items.parse", err)
 		}
 
 		counter.Increment(sourceFromContext(ctx))

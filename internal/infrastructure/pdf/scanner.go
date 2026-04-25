@@ -43,6 +43,11 @@ func ExtractQRCodes(pdfBytes []byte) ([]RawQRCode, error) {
 	}
 	tmpFile.Close()
 
+	// Reject decompression-bomb PDFs before paying the rendering cost.
+	if n := pageCount(tmpFile.Name()); n > MaxPDFPages {
+		return nil, fmt.Errorf("PDF has %d pages — limit is %d", n, MaxPDFPages)
+	}
+
 	// Render all PDF pages to PNG images.
 	pageFiles, cleanup, err := renderPagesToImages(tmpFile.Name())
 	if err != nil {
