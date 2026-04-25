@@ -51,6 +51,7 @@ services:
       - "traefik.http.middlewares.redirect-https.redirectscheme.permanent=true"
       # Porta interna do contentor (deve coincidir com PORT)
       - "traefik.http.services.go-atcud-pdf-qr-code-reader-app.loadbalancer.server.port=8080"
+      - "traefik.http.routers.my-app.tls=true"
     logging:
       driver: "json-file"
       options:

@@ -174,6 +174,18 @@ func NewRouter(cfg *appConfig.Config, counter *stats.Counter) *gin.Engine {
 		Tags: []string{"imagem"},
 	}, ParseImageEnrichedHandler(docService, cfg, counter))
 
+	// POST /api/v1/document/items
+	huma.Register(api, huma.Operation{
+		OperationID: "items-pdf",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/document/items",
+		Summary:     "Extrair linhas de itens de um PDF",
+		Description: "Envia o PDF ao serviço externo de extracção de tabelas e devolve apenas " +
+			"as colunas e linhas detectadas. Totais e moeda devem ser obtidos pelos endpoints " +
+			"de descodificação do QR code (/document/parse).",
+		Tags: []string{"documento"},
+	}, ItemsHandler(cfg, counter))
+
 	// POST /api/v1/nif/lookup/bulk
 	huma.Register(api, huma.Operation{
 		OperationID: "nif-lookup-bulk",
